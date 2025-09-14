@@ -48,7 +48,7 @@ $RECYCLE.BIN/
 .husky/
 /.cursor
 /force-app/main/solutions
-/authFile.json
+/auth.json
 .idea/
 .history/
 IlluminatedCloud/
