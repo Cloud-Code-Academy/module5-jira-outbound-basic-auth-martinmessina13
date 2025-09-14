@@ -2,7 +2,7 @@
  * Wrapper classes for Jira entities (Project and Issue)
  */
 public class JiraWrapper {
-	private static final String LEAD_ACCOUNT_ID = '1337:0123456789-bfa0-40f4-bd28-25ae65c3e5b1';
+	private static final String LEAD_ACCOUNT_ID = '70121:d6dfd1f0-16cd-4155-aed4-e1b4f6be5c35';
 	private static final String PROJECT_TEMPLATE_KEY = 'com.pyxis.greenhopper.jira:basic-software-development-template';
 
 	/**
@@ -31,12 +31,8 @@ public class JiraWrapper {
 	 * Wrapper for Jira Issue
 	 */
 	public class IssueWrapper {
-		public String name;
-		public String key;
-		public String description;
-		public String projectKey;
-		public String summary;
-		public String issueType;
+
+		public Fields fields;
 
 		/**
 		 * Constructor for IssueWrapper
@@ -47,10 +43,36 @@ public class JiraWrapper {
 			String description,
 			String issueType
 		) {
-			this.projectKey = projectKey;
-			this.summary = summary;
-			this.description = description;
-			this.issueType = (String.isNotBlank(issueType)) ? issueType : 'Task';
+			this.fields = new Fields();
+
+			JiraWrapper.Project project = new JiraWrapper.Project();
+			project.key = projectKey;
+
+			JiraWrapper.Description descriptionWrapper = new JiraWrapper.Description();
+			descriptionWrapper.type = 'doc';
+			descriptionWrapper.version = 1;
+
+			JiraWrapper.EmbeddedContent embeddedContent = new JiraWrapper.EmbeddedContent();
+			embeddedContent.type = 'text';
+			embeddedContent.text = description;
+
+			List<JiraWrapper.EmbeddedContent> embeddedContents = new List<JiraWrapper.EmbeddedContent>{embeddedContent};
+
+			JiraWrapper.Content content = new JiraWrapper.Content();
+			content.content = embeddedContents;
+			content.type = 'paragraph';
+			
+			List<JiraWrapper.Content> contents = new List<JiraWrapper.Content>{content};
+			descriptionWrapper.content = contents;
+
+			this.fields.project = project;
+			this.fields.description = descriptionWrapper;
+			this.fields.summary = summary;
+			// this.fields.description = (JiraWrapper.Description)JSON.deserializeStrict(description, JiraWrapper.Description.class);
+			String issueTypeName = (String.isNotBlank(issueType)) ? issueType : 'Task';
+			JiraWrapper.Issuetype issuetypeWrapper = new JiraWrapper.Issuetype();
+			issuetypeWrapper.name = issueTypeName;
+			this.fields.issuetype = issuetypeWrapper;
 		}
 
 		/**
@@ -100,5 +122,53 @@ public class JiraWrapper {
 			// Your implementation goes here
 			return null;
 		}
+	}
+
+	/**
+	 * Wrapper for Jira Issue's fields
+	 */
+	class Fields{
+		public Description description;
+		public Project project;
+		public String summary;
+		public Issuetype issuetype;
+	}
+
+	class Project{
+		public String key;
+	}
+
+	class Issuetype{
+		public String name;
+	}
+
+	class Description {
+		public Content[] content;
+		public String type;	//doc
+		public Integer version;	//1
+	}
+
+	class EmbeddedContent {
+		public String text;	
+		public String type;	//text
+	}
+
+	class Content {
+		public EmbeddedContent[] content;
+		public String type;	//text
+	}
+
+	public class ResponseWrapper{
+		/*
+		* Wrapper for Jira responses
+		*/
+		public String id;
+		public String key;
+		public String self;
+	}
+
+	public class ErrorWrapper{
+		public List<String> errorMessages;
+		public Map<String, String> errors;
 	}
 }
