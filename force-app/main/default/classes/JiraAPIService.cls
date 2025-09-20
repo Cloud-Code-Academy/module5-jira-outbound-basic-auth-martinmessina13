@@ -2,7 +2,6 @@
  * Service class for making callouts to the Jira API
  */
 public with sharing class JiraAPIService {
-
 	private static final String NAMED_CREDENTIAL = 'callout:JiraAPI'; //https://martinmessina13.atlassian.net/rest/api/3/
 	private static final String PROJECT_ENDPOINT = '/project';
 	private static final String ISSUE_ENDPOINT = '/issue';
@@ -19,11 +18,8 @@ public with sharing class JiraAPIService {
 		String endpoint = NAMED_CREDENTIAL + PROJECT_ENDPOINT;
 		String body = JSON.serialize(projectWrapper);
 		HttpResponse response = makePostCallout(endpoint, body);
-		if(response.getStatusCode() == 201){
-			JiraWrapper.ResponseWrapper responseWrapper = (JiraWrapper.ResponseWrapper)JSON.deserializeStrict(
-				response.getBody(), 
-				JiraWrapper.ResponseWrapper.class
-			);
+		if (response.getStatusCode() == 201) {
+			JiraWrapper.ResponseWrapper responseWrapper = parseResponse(response.getBody());
 			return responseWrapper.id; // Return project ID
 		}
 		throw new JiraException(response.getStatus());
@@ -42,50 +38,70 @@ public with sharing class JiraAPIService {
 		String endpoint = NAMED_CREDENTIAL + ISSUE_ENDPOINT;
 		String body = JSON.serialize(issueWrapper);
 		HttpResponse response = makePostCallout(endpoint, body);
-		if(response.getStatusCode() == 201){
-			JiraWrapper.ResponseWrapper responseWrapper = (JiraWrapper.ResponseWrapper)JSON.deserializeStrict(
-				response.getBody(), 
-				JiraWrapper.ResponseWrapper.class
-			);
+		if (response.getStatusCode() == 201) {
+			JiraWrapper.ResponseWrapper responseWrapper = parseResponse(response.getBody());
 			return responseWrapper.key; // Return issue key
 		}
 		throw new JiraException(formatErrors(response));
 	}
 
 	/**
-     * Helper method to make the HTTP POST callout
-     * @param endpoint The full URL with parameters
-     * @return HttpResponse The HTTP response
-     */
-    private static HttpResponse makePostCallout(String endpoint, String body) {
-        // - Create and configure HTTP request
-        HttpRequest request = new HttpRequest();
-        request.setEndpoint(endpoint);
-        request.setMethod('POST');
+	 * Helper method to make the HTTP POST callout
+	 * @param endpoint The full URL with parameters
+	 * @return HttpResponse The HTTP response
+	 */
+	private static HttpResponse makePostCallout(String endpoint, String body) {
+		// - Create and configure HTTP request
+		HttpRequest request = new HttpRequest();
+		request.setEndpoint(endpoint);
+		request.setMethod('POST');
 		request.setHeader('Content-Type', 'application/json');
 		request.setBody(body);
-        // - Make the callout
-        Http http = new Http();
-        HttpResponse response = http.send(request);
-        return response;
-    }
+		// - Make the callout
+		Http http = new Http();
+		HttpResponse response = http.send(request);
+		return response;
+	}
 
 	/**
-     * Helper method to format errors coming in the endpoints response
-     * @param HttpResponse The HTTP response
-     * @return String String formatted errors
-     */
-	private static String formatErrors(HttpResponse response){
-		JiraWrapper.ErrorWrapper error = (JiraWrapper.ErrorWrapper)JSON.deserialize(response.getBody(), JiraWrapper.ErrorWrapper.class);
+	 * Helper method to parse the JSON response
+	 * @param jsonResponse The JSON response string
+	 * @return JiraWrapper.ResponseWrapper The parsed response object
+	 */
+	private static JiraWrapper.ResponseWrapper parseResponse(String jsonResponse) {
+		// - Deserialize JSON to JiraWrapper.ResponseWrapper
+		try {
+			return (JiraWrapper.ResponseWrapper) JSON.deserialize(
+				jsonResponse,
+				JiraWrapper.ResponseWrapper.class
+			);
+		} catch (Exception e) {
+			// - Handle exceptions
+			CustomLogger.insertLog(e, 'ERROR');
+			throw new JiraException(e);
+		}
+	}
+
+	/**
+	 * Helper method to format errors coming in the endpoints response
+	 * @param HttpResponse The HTTP response
+	 * @return String String formatted errors
+	 */
+	private static String formatErrors(HttpResponse response) {
+		JiraWrapper.ErrorWrapper error = (JiraWrapper.ErrorWrapper) JSON.deserialize(
+			response.getBody(),
+			JiraWrapper.ErrorWrapper.class
+		);
 		String errorMessage = response.getStatus() + '. ';
-		if(!error.errorMessages.isEmpty()){
+		if (!error.errorMessages.isEmpty()) {
 			errorMessage += 'Error Messages: ' + error.errorMessages.toString() + '. ';
 		}
-		if(error.errors.size() > 0){
+		if (error.errors.size() > 0) {
 			errorMessage += 'Errors detail: ' + error.errors + '. ';
 		}
 		return errorMessage;
 	}
 
-	public class JiraException extends Exception{}
+	public class JiraException extends Exception {
+	}
 }
