@@ -31,7 +31,6 @@ public class JiraWrapper {
 	 * Wrapper for Jira Issue
 	 */
 	public class IssueWrapper {
-
 		public Fields fields;
 
 		/**
@@ -43,57 +42,30 @@ public class JiraWrapper {
 			String description,
 			String issueType
 		) {
-			this.fields = new Fields();
-			this.fields.project = formatProject(project);
-			this.fields.description = formatDescription(description);
-			this.fields.summary = summary;
-			this.fields.issuetype = formatIssueType(issueType);
+			this.fields = generateIssuePayloadMap(projectKey, summary, description, issueType);
 		}
 
 		/**
-		 * Convert IssueWrapper to a Map for serialization
-		 *
-		 * TODO: Implement this method to create a Map that represents
-		 * the JSON payload needed for the Jira API. The Map should contain:
-		 * - fields object with project information (key)
-		 * - issuetype object with the issue type name
-		 * - summary field
-		 * - description field (formatted using formatDescription method)
-		 * - Example:
+		 * Convert IssueWrapper to a Fields object for serialization
 		 */
-		public Map<String, Object> generateIssuePayloadMap() {
-			// Your implementation goes here
-			return null;
+		public Fields generateIssuePayloadMap(
+			String projectKey,
+			String summary,
+			String description,
+			String issueType
+		) {
+			Fields fieldsObject = new Fields();
+			fieldsObject.project = formatProject(projectKey);
+			fieldsObject.description = formatDescription(description);
+			fieldsObject.summary = summary;
+			fieldsObject.issuetype = formatIssueType(issueType);
+			return fieldsObject;
 		}
 
 		/**
 		 * Format description as per Jira Cloud API requirements
-		 *
-		 * TODO: Implement this method to format the description text
-		 * according to Jira Cloud API requirements.
-		 * - Create a Map with type="doc" and version=1
-		 * - Add content array with paragraph object
-		 * - Add text object inside paragraph content with the description
-		 * - Example:
-		 *   {
-		 *     "description": {
-		 *       "type": "doc",
-		 *       "version": 1,
-		 *       "content": [
-		 *         {
-		 *           "type": "paragraph",
-		 *           "content": [
-		 *             {
-		 *               "type": "text",
-		 *               "text": "Order entry fails when selecting supplier."
-		 *             }
-		 *           ]
-		 *         }
-		 *       ]
-		 *     }
-		 *   }
 		 */
-		private Map<String, Object> formatDescription(String description) {
+		private JiraWrapper.Description formatDescription(String description) {
 			JiraWrapper.Description descriptionWrapper = new JiraWrapper.Description();
 			descriptionWrapper.type = 'doc';
 			descriptionWrapper.version = 1;
@@ -102,26 +74,34 @@ public class JiraWrapper {
 			embeddedContent.type = 'text';
 			embeddedContent.text = description;
 
-			List<JiraWrapper.EmbeddedContent> embeddedContents = new List<JiraWrapper.EmbeddedContent>{embeddedContent};
+			List<JiraWrapper.EmbeddedContent> embeddedContents = new List<JiraWrapper.EmbeddedContent>{
+				embeddedContent
+			};
 
 			JiraWrapper.Content content = new JiraWrapper.Content();
 			content.content = embeddedContents;
 			content.type = 'paragraph';
-			
-			List<JiraWrapper.Content> contents = new List<JiraWrapper.Content>{content};
+
+			List<JiraWrapper.Content> contents = new List<JiraWrapper.Content>{ content };
 			descriptionWrapper.content = contents;
 
 			return descriptionWrapper;
 		}
 
-		private JiraWrapper.Issuetype formatIssueType(String issueType){
+		/**
+		 * Format issue type as per Jira Cloud API requirements
+		 */
+		private JiraWrapper.Issuetype formatIssueType(String issueType) {
 			String issueTypeName = (String.isNotBlank(issueType)) ? issueType : 'Task';
 			JiraWrapper.Issuetype issuetypeWrapper = new JiraWrapper.Issuetype();
 			issuetypeWrapper.name = issueTypeName;
 			return issuetypeWrapper;
 		}
 
-		private JiraWrapper.Project formatProject(String project){
+		/**
+		 * Format project as per Jira Cloud API requirements
+		 */
+		private JiraWrapper.Project formatProject(String projectKey) {
 			JiraWrapper.Project project = new JiraWrapper.Project();
 			project.key = projectKey;
 			return project;
@@ -131,47 +111,47 @@ public class JiraWrapper {
 	/**
 	 * Wrapper for Jira Issue's fields
 	 */
-	class Fields{
+	class Fields {
 		public Description description;
 		public Project project;
 		public String summary;
 		public Issuetype issuetype;
 	}
 
-	class Project{
+	class Project {
 		public String key;
 	}
 
-	class Issuetype{
+	class Issuetype {
 		public String name;
 	}
 
 	class Description {
 		public Content[] content;
-		public String type;	//doc
-		public Integer version;	//1
+		public String type; //doc
+		public Integer version; //1
 	}
 
 	class EmbeddedContent {
-		public String text;	
-		public String type;	//text
+		public String text;
+		public String type; //text
 	}
 
 	class Content {
 		public EmbeddedContent[] content;
-		public String type;	//text
+		public String type; //paragraph
 	}
 
-	public class ResponseWrapper{
-		/*
-		* Wrapper for Jira responses
-		*/
+	/*
+	 * Wrapper for Jira responses
+	 */
+	public class ResponseWrapper {
 		public String id;
 		public String key;
 		public String self;
 	}
 
-	public class ErrorWrapper{
+	public class ErrorWrapper {
 		public List<String> errorMessages;
 		public Map<String, String> errors;
 	}
