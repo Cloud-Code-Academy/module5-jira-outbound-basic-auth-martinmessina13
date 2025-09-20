@@ -16,6 +16,7 @@ public with sharing class JiraTriggerHelper {
 			}
 		}
 
+		// Queue job passing list of projects, to avoid hitting exceptions by queueing within loops, and batch size for chaining purposes
 		enqueueJob(new JiraCalloutQueueable(projectsToProcess, 20));
 	}
 
@@ -24,7 +25,6 @@ public with sharing class JiraTriggerHelper {
 	 * @param newIssues List of newly inserted Jira_Issue__c records
 	 */
 	public static void processIssueAfterInsert(List<Jira_Issue__c> newIssues) {
-		// Your implementation goes here
 		List<Jira_Issue__c> issuesToProcess = new List<Jira_Issue__c>();
 		for (Jira_Issue__c newIssue : newIssues) {
 			if (String.isBlank(newIssue.Issue_Key__c) && !String.isBlank(newIssue.Project_Key__c)) {
@@ -32,6 +32,7 @@ public with sharing class JiraTriggerHelper {
 			}
 		}
 
+		// Queue job passing list of issues, to avoid hitting exceptions by queueing within loops, and batch size for chaining purposes
 		enqueueJob(new JiraCalloutQueueable(issuesToProcess, 20));
 	}
 
@@ -44,7 +45,6 @@ public with sharing class JiraTriggerHelper {
 			try {
 				// Queue job if within queueable governor limits
 				if (Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
-					// Queue job passing list of projects, to avoid hitting exceptions by queueing within loops, and batch size for chaining purposes
 					System.enqueueJob(callout);
 					return;
 				}
