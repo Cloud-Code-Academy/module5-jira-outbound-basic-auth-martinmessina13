@@ -20,10 +20,7 @@ public with sharing class JiraAPIService {
 		String body = JSON.serialize(projectWrapper);
 		HttpResponse response = makePostCallout(endpoint, body);
 		if(response.getStatusCode() == 201){
-			JiraWrapper.ResponseWrapper responseWrapper = (JiraWrapper.ResponseWrapper)JSON.deserializeStrict(
-				response.getBody(), 
-				JiraWrapper.ResponseWrapper.class
-			);
+			JiraWrapper.ResponseWrapper responseWrapper = parseResponse(response.getBody());
 			return responseWrapper.id; // Return project ID
 		}
 		throw new JiraException(response.getStatus());
@@ -43,10 +40,7 @@ public with sharing class JiraAPIService {
 		String body = JSON.serialize(issueWrapper);
 		HttpResponse response = makePostCallout(endpoint, body);
 		if(response.getStatusCode() == 201){
-			JiraWrapper.ResponseWrapper responseWrapper = (JiraWrapper.ResponseWrapper)JSON.deserializeStrict(
-				response.getBody(), 
-				JiraWrapper.ResponseWrapper.class
-			);
+			JiraWrapper.ResponseWrapper responseWrapper = parseResponse(response.getBody());
 			return responseWrapper.key; // Return issue key
 		}
 		throw new JiraException(formatErrors(response));
@@ -68,6 +62,23 @@ public with sharing class JiraAPIService {
         Http http = new Http();
         HttpResponse response = http.send(request);
         return response;
+    }
+
+	/**
+     * Helper method to parse the JSON response
+     * @param jsonResponse The JSON response string
+     * @return JiraWrapper.ResponseWrapper The parsed response object
+     */
+    private static JiraWrapper.ResponseWrapper parseResponse(String jsonResponse) {
+        // - Deserialize JSON to JiraWrapper.ResponseWrapper
+        try{
+            return (JiraWrapper.ResponseWrapper)JSON.deserialize(jsonResponse, JiraWrapper.ResponseWrapper.class);
+        }
+        catch(Exception e){
+            // - Handle exceptions
+            CustomLogger.insertLog(e, 'ERROR');
+            throw new JiraException(e);
+        }
     }
 
 	/**

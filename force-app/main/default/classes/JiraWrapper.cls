@@ -44,35 +44,10 @@ public class JiraWrapper {
 			String issueType
 		) {
 			this.fields = new Fields();
-
-			JiraWrapper.Project project = new JiraWrapper.Project();
-			project.key = projectKey;
-
-			JiraWrapper.Description descriptionWrapper = new JiraWrapper.Description();
-			descriptionWrapper.type = 'doc';
-			descriptionWrapper.version = 1;
-
-			JiraWrapper.EmbeddedContent embeddedContent = new JiraWrapper.EmbeddedContent();
-			embeddedContent.type = 'text';
-			embeddedContent.text = description;
-
-			List<JiraWrapper.EmbeddedContent> embeddedContents = new List<JiraWrapper.EmbeddedContent>{embeddedContent};
-
-			JiraWrapper.Content content = new JiraWrapper.Content();
-			content.content = embeddedContents;
-			content.type = 'paragraph';
-			
-			List<JiraWrapper.Content> contents = new List<JiraWrapper.Content>{content};
-			descriptionWrapper.content = contents;
-
-			this.fields.project = project;
-			this.fields.description = descriptionWrapper;
+			this.fields.project = formatProject(project);
+			this.fields.description = formatDescription(description);
 			this.fields.summary = summary;
-			// this.fields.description = (JiraWrapper.Description)JSON.deserializeStrict(description, JiraWrapper.Description.class);
-			String issueTypeName = (String.isNotBlank(issueType)) ? issueType : 'Task';
-			JiraWrapper.Issuetype issuetypeWrapper = new JiraWrapper.Issuetype();
-			issuetypeWrapper.name = issueTypeName;
-			this.fields.issuetype = issuetypeWrapper;
+			this.fields.issuetype = formatIssueType(issueType);
 		}
 
 		/**
@@ -118,9 +93,38 @@ public class JiraWrapper {
 		 *     }
 		 *   }
 		 */
-		private Map<String, Object> formatDescription(String descText) {
-			// Your implementation goes here
-			return null;
+		private Map<String, Object> formatDescription(String description) {
+			JiraWrapper.Description descriptionWrapper = new JiraWrapper.Description();
+			descriptionWrapper.type = 'doc';
+			descriptionWrapper.version = 1;
+
+			JiraWrapper.EmbeddedContent embeddedContent = new JiraWrapper.EmbeddedContent();
+			embeddedContent.type = 'text';
+			embeddedContent.text = description;
+
+			List<JiraWrapper.EmbeddedContent> embeddedContents = new List<JiraWrapper.EmbeddedContent>{embeddedContent};
+
+			JiraWrapper.Content content = new JiraWrapper.Content();
+			content.content = embeddedContents;
+			content.type = 'paragraph';
+			
+			List<JiraWrapper.Content> contents = new List<JiraWrapper.Content>{content};
+			descriptionWrapper.content = contents;
+
+			return descriptionWrapper;
+		}
+
+		private JiraWrapper.Issuetype formatIssueType(String issueType){
+			String issueTypeName = (String.isNotBlank(issueType)) ? issueType : 'Task';
+			JiraWrapper.Issuetype issuetypeWrapper = new JiraWrapper.Issuetype();
+			issuetypeWrapper.name = issueTypeName;
+			return issuetypeWrapper;
+		}
+
+		private JiraWrapper.Project formatProject(String project){
+			JiraWrapper.Project project = new JiraWrapper.Project();
+			project.key = projectKey;
+			return project;
 		}
 	}
 
