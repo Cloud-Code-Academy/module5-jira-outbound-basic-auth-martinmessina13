@@ -16,20 +16,7 @@ public with sharing class JiraTriggerHelper {
 			}
 		}
 
-		// Simple bulkification by looping through each project
-		for (Jira_Project__c project : projectsToProcess) {
-			// Enqueue the callout
-			JiraCalloutQueueable callout = new JiraCalloutQueueable(
-				project.Id,
-				project.Project_Name__c,
-				project.Project_Key__c,
-				project.Description__c
-			);
-
-			if (!Test.isRunningTest()) {
-				System.enqueueJob(callout);
-			}
-		}
+		enqueueJob(new JiraCalloutQueueable(projectsToProcess, 20));
 	}
 
 	/**
@@ -45,5 +32,35 @@ public with sharing class JiraTriggerHelper {
 	 */
 	public static void processIssueAfterInsert(List<Jira_Issue__c> newIssues) {
 		// Your implementation goes here
+		List<Jira_Issue__c> issuesToProcess = new List<Jira_Issue__c>();
+		for (Jira_Issue__c newIssue : newIssues) {
+			if (String.isBlank(newIssue.Issue_Key__c) && !String.isBlank(newIssue.Project_Key__c)) {
+				issuesToProcess.add(newIssue);
+			}
+		}
+
+		enqueueJob(new JiraCalloutQueueable(issuesToProcess, 20));
+	}
+
+	/*
+	 * Utilitary method to enqueue Queueable job
+	 * @param JiraCalloutQueuable Queueable job to queue
+	 */
+	private static void enqueueJob(JiraCalloutQueueable callout) {
+		if (!Test.isRunningTest()) {
+			try {
+				// Queue job if within queueable governor limits
+				if (Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
+					// Queue job passing list of projects, to avoid hitting exceptions by queueing within loops, and batch size for chaining purposes
+					System.enqueueJob(callout);
+					return;
+				}
+				throw new JiraAPIService.JiraException(
+					'Queueable jobs limit has been reached, the callouts to the Jira API could not be queued.'
+				);
+			} catch (Exception e) {
+				CustomLogger.insertLog(e, 'ERROR');
+			}
+		}
 	}
 }
