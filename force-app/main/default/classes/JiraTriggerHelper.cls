@@ -1,5 +1,7 @@
 /**
  * Helper class for Jira triggers
+ * Queue job passes list of projects/issues and batch size for chaining purposes
+ * This is done to avoid hitting queueable and callouts limit related exceptions
  */
 public with sharing class JiraTriggerHelper {
 	/**
@@ -16,8 +18,11 @@ public with sharing class JiraTriggerHelper {
 			}
 		}
 
-		// Queue job passing list of projects, to avoid hitting exceptions by queueing within loops, and batch size for chaining purposes
-		enqueueJob(new JiraCalloutQueueable(projectsToProcess, 20));
+		if (!projectsToProcess.isEmpty()) {
+			enqueueJob(projectsToProcess, JiraCalloutQueueable.TYPE_PROJECT);
+		} else {
+			CustomLogger.insertLog('There are no projects to create in Jira.', 'INFO');
+		}
 	}
 
 	/**
@@ -27,25 +32,45 @@ public with sharing class JiraTriggerHelper {
 	public static void processIssueAfterInsert(List<Jira_Issue__c> newIssues) {
 		List<Jira_Issue__c> issuesToProcess = new List<Jira_Issue__c>();
 		for (Jira_Issue__c newIssue : newIssues) {
-			if (String.isBlank(newIssue.Issue_Key__c) && !String.isBlank(newIssue.Project_Key__c)) {
+			if (String.isBlank(newIssue.Issue_Key__c)) {
+				// Ensure project key field is populated
+				if (String.isBlank(newIssue.Project_Key__c)) {
+					String message =
+						'Jira Issue with key \'' +
+						newIssue.Issue_Key__c +
+						'\' and summary \'' +
+						newIssue.Summary__c +
+						'\' does not have a project key and won\'t be synced in Jira.';
+					CustomLogger.insertLog(message, 'ERROR');
+					continue;
+				}
 				issuesToProcess.add(newIssue);
 			}
 		}
 
-		// Queue job passing list of issues, to avoid hitting exceptions by queueing within loops, and batch size for chaining purposes
-		enqueueJob(new JiraCalloutQueueable(issuesToProcess, 20));
+		if (!issuesToProcess.isEmpty()) {
+			enqueueJob(issuesToProcess, JiraCalloutQueueable.TYPE_ISSUE);
+		} else {
+			CustomLogger.insertLog('There are no issues to create in Jira.', 'INFO');
+		}
 	}
 
-	/*
+	/**
 	 * Utilitary method to enqueue Queueable job
 	 * @param JiraCalloutQueuable Queueable job to queue
 	 */
-	private static void enqueueJob(JiraCalloutQueueable callout) {
+	private static void enqueueJob(List<SObject> records, String calloutType) {
 		if (!Test.isRunningTest()) {
 			try {
 				// Queue job if within queueable governor limits
 				if (Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
-					System.enqueueJob(callout);
+					JiraCalloutQueueable.JobParameters params = new JiraCalloutQueueable.JobParameters();
+
+					params.batchSize = JiraCalloutQueueable.BATCH_SIZE;
+					params.currentIndex = 0;
+					params.retryCount = 0;
+
+					System.enqueueJob(new JiraCalloutQueueable(records, calloutType, params));
 					return;
 				}
 				throw new JiraAPIService.JiraException(
