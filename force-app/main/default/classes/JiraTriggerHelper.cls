@@ -1,5 +1,7 @@
 /**
  * Helper class for Jira triggers
+ * Queue job passes list of projects/issues and batch size for chaining purposes
+ * This is done to avoid hitting queueable and callouts limit related exceptions
  */
 public with sharing class JiraTriggerHelper {
 	/**
@@ -16,34 +18,67 @@ public with sharing class JiraTriggerHelper {
 			}
 		}
 
-		// Simple bulkification by looping through each project
-		for (Jira_Project__c project : projectsToProcess) {
-			// Enqueue the callout
-			JiraCalloutQueueable callout = new JiraCalloutQueueable(
-				project.Id,
-				project.Project_Name__c,
-				project.Project_Key__c,
-				project.Description__c
-			);
-
-			if (!Test.isRunningTest()) {
-				System.enqueueJob(callout);
-			}
+		if (!projectsToProcess.isEmpty()) {
+			enqueueJob(projectsToProcess, JiraCalloutQueueable.TYPE_PROJECT);
+		} else {
+			CustomLogger.insertLog('There are no projects to create in Jira.', 'INFO');
 		}
 	}
 
 	/**
 	 * Process Jira_Issue__c records after insert
 	 * @param newIssues List of newly inserted Jira_Issue__c records
-	 *
-	 * TODO: Implement this method to process new Jira issues
-	 * The method should:
-	 * 1. Filter out issues that already have a Jira issue key
-	 * 2. Ensure the Project_Key__c field is not blank
-	 * 3. Create a JiraCalloutQueueable for each issue and enqueue it
-	 * 4. Don't enqueue if Test.isRunningTest() is true
 	 */
 	public static void processIssueAfterInsert(List<Jira_Issue__c> newIssues) {
-		// Your implementation goes here
+		List<Jira_Issue__c> issuesToProcess = new List<Jira_Issue__c>();
+		for (Jira_Issue__c newIssue : newIssues) {
+			if (String.isBlank(newIssue.Issue_Key__c)) {
+				// Ensure project key field is populated
+				if (String.isBlank(newIssue.Project_Key__c)) {
+					String message =
+						'Jira Issue with key \'' +
+						newIssue.Issue_Key__c +
+						'\' and summary \'' +
+						newIssue.Summary__c +
+						'\' does not have a project key and won\'t be synced in Jira.';
+					CustomLogger.insertLog(message, 'ERROR');
+					continue;
+				}
+				issuesToProcess.add(newIssue);
+			}
+		}
+
+		if (!issuesToProcess.isEmpty()) {
+			enqueueJob(issuesToProcess, JiraCalloutQueueable.TYPE_ISSUE);
+		} else {
+			CustomLogger.insertLog('There are no issues to create in Jira.', 'INFO');
+		}
+	}
+
+	/**
+	 * Utilitary method to enqueue Queueable job
+	 * @param JiraCalloutQueuable Queueable job to queue
+	 */
+	private static void enqueueJob(List<SObject> records, String calloutType) {
+		if (!Test.isRunningTest()) {
+			try {
+				// Queue job if within queueable governor limits
+				if (Limits.getQueueableJobs() < Limits.getLimitQueueableJobs()) {
+					JiraCalloutQueueable.JobParameters params = new JiraCalloutQueueable.JobParameters();
+
+					params.batchSize = JiraCalloutQueueable.BATCH_SIZE;
+					params.currentIndex = 0;
+					params.retryCount = 0;
+
+					System.enqueueJob(new JiraCalloutQueueable(records, calloutType, params));
+					return;
+				}
+				throw new JiraAPIService.JiraException(
+					'Queueable jobs limit has been reached, the callouts to the Jira API could not be queued.'
+				);
+			} catch (Exception e) {
+				CustomLogger.insertLog(e, 'ERROR');
+			}
+		}
 	}
 }
