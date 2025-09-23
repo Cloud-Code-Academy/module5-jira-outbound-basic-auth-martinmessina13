@@ -10,6 +10,7 @@ public class JiraMockHttpResponseGenerator implements HttpCalloutMock {
 	private Boolean isSuccess;
 	private Boolean isProject;
 	private String projectKey;
+	private Boolean isCreate;
 
 	/**
 	 * Constructor
@@ -17,7 +18,7 @@ public class JiraMockHttpResponseGenerator implements HttpCalloutMock {
 	 * @param isProject Whether to simulate a project or issue API call
 	 */
 	public JiraMockHttpResponseGenerator(Boolean isSuccess, Boolean isProject) {
-		this(isSuccess, isProject, 'TP1');
+		this(isSuccess, isProject, 'TP1', true);
 	}
 
 	/**
@@ -26,10 +27,16 @@ public class JiraMockHttpResponseGenerator implements HttpCalloutMock {
 	 * @param isProject Whether to simulate a project or issue API call
 	 * @param projectKey Custom project key for the response
 	 */
-	public JiraMockHttpResponseGenerator(Boolean isSuccess, Boolean isProject, String projectKey) {
+	public JiraMockHttpResponseGenerator(
+		Boolean isSuccess,
+		Boolean isProject,
+		String projectKey,
+		Boolean isCreate
+	) {
 		this.isSuccess = isSuccess;
 		this.isProject = isProject;
 		this.projectKey = projectKey;
+		this.isCreate = isCreate;
 	}
 
 	/**
@@ -55,7 +62,15 @@ public class JiraMockHttpResponseGenerator implements HttpCalloutMock {
 		res.setHeader('Content-Type', 'application/json');
 
 		if (isSuccess) {
-			res.setStatusCode(201);
+			if (isCreate) {
+				res.setStatusCode(201);
+			} else {
+				if (isProject) {
+					res.setStatusCode(200);
+				} else {
+					res.setStatusCode(204);
+				}
+			}
 
 			if (isProject) {
 				res.setBody(
@@ -66,12 +81,16 @@ public class JiraMockHttpResponseGenerator implements HttpCalloutMock {
 						'"}'
 				);
 			} else {
-				res.setBody(
-					'{"id": "10000", "key": "' +
-						MOCK_ISSUE_KEY +
-						'", "self": "https://your-domain.atlassian.net/rest/api/3/issue/10000", ' +
-						'"transition": {"status": 200, "errorCollection": {"errorMessages": [], "errors": {}}}}'
-				);
+				if (isCreate) {
+					res.setBody(
+						'{"id": "10000", "key": "' +
+							MOCK_ISSUE_KEY +
+							'", "self": "https://your-domain.atlassian.net/rest/api/3/issue/10000", ' +
+							'"transition": {"status": 200, "errorCollection": {"errorMessages": [], "errors": {}}}}'
+					);
+				} else {
+					res.setBody('');
+				}
 			}
 		} else {
 			res.setStatusCode(400);
