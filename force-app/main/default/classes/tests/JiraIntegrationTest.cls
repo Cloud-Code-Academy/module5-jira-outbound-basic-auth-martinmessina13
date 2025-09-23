@@ -17,22 +17,35 @@ private class JiraIntegrationTest {
 	 */
 	@TestSetup
 	static void setupTestData() {
-		// Create a test Jira Project record
-		Jira_Project__c project = new Jira_Project__c(
-			Project_Name__c = TEST_PROJECT_NAME,
-			Project_Key__c = TEST_PROJECT_KEY,
-			Description__c = TEST_DESCRIPTION
+		TestDataFactory.createUserWithPermissionSets(
+			new List<String>{
+				'Custom_Log_Read_Write',
+				'Jira_Project_Read_Write',
+				'Jira_Issue_Read_Write',
+				'Jira_API_Access'
+			}
 		);
-		insert project;
 
-		// Create a test Jira Issue record
-		Jira_Issue__c issue = new Jira_Issue__c(
-			Project_Key__c = TEST_PROJECT_KEY,
-			Summary__c = TEST_ISSUE_SUMMARY,
-			Description__c = TEST_DESCRIPTION,
-			Issue_Type__c = TEST_ISSUE_TYPE
-		);
-		insert issue;
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
+
+		System.runAs(u) {
+			// Create a test Jira Project record
+			Jira_Project__c project = new Jira_Project__c(
+				Project_Name__c = TEST_PROJECT_NAME,
+				Project_Key__c = TEST_PROJECT_KEY,
+				Description__c = TEST_DESCRIPTION
+			);
+			insert project;
+
+			// Create a test Jira Issue record
+			Jira_Issue__c issue = new Jira_Issue__c(
+				Project_Key__c = TEST_PROJECT_KEY,
+				Summary__c = TEST_ISSUE_SUMMARY,
+				Description__c = TEST_DESCRIPTION,
+				Issue_Type__c = TEST_ISSUE_TYPE
+			);
+			insert issue;
+		}
 	}
 
 	/**
@@ -43,27 +56,31 @@ private class JiraIntegrationTest {
 		// Setup the mock
 		Test.setMock(HttpCalloutMock.class, new JiraMockHttpResponseGenerator(true, true));
 
-		// Start the test
-		Test.startTest();
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Create a project wrapper
-		JiraWrapper.ProjectWrapper projectWrapper = new JiraWrapper.ProjectWrapper(
-			TEST_PROJECT_NAME,
-			TEST_PROJECT_KEY,
-			TEST_DESCRIPTION
-		);
+		System.runAs(u) {
+			// Start the test
+			Test.startTest();
 
-		// Call the method to test
-		String projectId = JiraAPIService.createProject(projectWrapper);
+			// Create a project wrapper
+			JiraWrapper.ProjectWrapper projectWrapper = new JiraWrapper.ProjectWrapper(
+				TEST_PROJECT_NAME,
+				TEST_PROJECT_KEY,
+				TEST_DESCRIPTION
+			);
 
-		Test.stopTest();
+			// Call the method to test
+			String projectId = JiraAPIService.createProject(projectWrapper);
 
-		// Verify results
-		Assert.areEqual(
-			JiraMockHttpResponseGenerator.getMockProjectId(),
-			projectId,
-			'Project ID should match the mock response'
-		);
+			Test.stopTest();
+
+			// Verify results
+			Assert.areEqual(
+				JiraMockHttpResponseGenerator.getMockProjectId(),
+				projectId,
+				'Project ID should match the mock response'
+			);
+		}
 	}
 
 	/**
@@ -74,23 +91,27 @@ private class JiraIntegrationTest {
 		// Setup the mock to return an error response
 		Test.setMock(HttpCalloutMock.class, new JiraMockHttpResponseGenerator(false, true));
 
-		// Start the test
-		Test.startTest();
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Create a project wrapper
-		JiraWrapper.ProjectWrapper projectWrapper = new JiraWrapper.ProjectWrapper(
-			TEST_PROJECT_NAME,
-			TEST_PROJECT_KEY,
-			TEST_DESCRIPTION
-		);
+		System.runAs(u) {
+			// Start the test
+			Test.startTest();
 
-		// Call the method to test
-		String projectId = JiraAPIService.createProject(projectWrapper);
+			// Create a project wrapper
+			JiraWrapper.ProjectWrapper projectWrapper = new JiraWrapper.ProjectWrapper(
+				TEST_PROJECT_NAME,
+				TEST_PROJECT_KEY,
+				TEST_DESCRIPTION
+			);
 
-		Test.stopTest();
+			// Call the method to test
+			String projectId = JiraAPIService.createProject(projectWrapper);
 
-		// Verify results
-		Assert.isNull(projectId, 'Project ID should be null due to API failure');
+			Test.stopTest();
+
+			// Verify results
+			Assert.isNull(projectId, 'Project ID should be null due to API failure');
+		}
 	}
 
 	/**
@@ -104,27 +125,31 @@ private class JiraIntegrationTest {
 			new JiraMockHttpResponseGenerator(true, true, 'TP1', false)
 		);
 
-		// Start the test
-		Test.startTest();
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Create a project wrapper
-		JiraWrapper.ProjectWrapper projectWrapper = new JiraWrapper.ProjectWrapper(
-			TEST_PROJECT_NAME,
-			TEST_PROJECT_KEY,
-			TEST_DESCRIPTION
-		);
+		System.runAs(u) {
+			// Start the test
+			Test.startTest();
 
-		// Call the method to test
-		String projectId = JiraAPIService.updateProject(projectWrapper, TEST_PROJECT_KEY);
+			// Create a project wrapper
+			JiraWrapper.ProjectWrapper projectWrapper = new JiraWrapper.ProjectWrapper(
+				TEST_PROJECT_NAME,
+				TEST_PROJECT_KEY,
+				TEST_DESCRIPTION
+			);
 
-		Test.stopTest();
+			// Call the method to test
+			String projectId = JiraAPIService.updateProject(projectWrapper, TEST_PROJECT_KEY);
 
-		// Verify results
-		Assert.areEqual(
-			JiraMockHttpResponseGenerator.getMockProjectId(),
-			projectId,
-			'Project ID should match the mock response'
-		);
+			Test.stopTest();
+
+			// Verify results
+			Assert.areEqual(
+				JiraMockHttpResponseGenerator.getMockProjectId(),
+				projectId,
+				'Project ID should match the mock response'
+			);
+		}
 	}
 
 	/**
@@ -135,23 +160,27 @@ private class JiraIntegrationTest {
 		// Setup the mock to return an error response
 		Test.setMock(HttpCalloutMock.class, new JiraMockHttpResponseGenerator(false, true));
 
-		// Start the test
-		Test.startTest();
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Create a project wrapper
-		JiraWrapper.ProjectWrapper projectWrapper = new JiraWrapper.ProjectWrapper(
-			TEST_PROJECT_NAME,
-			TEST_PROJECT_KEY,
-			TEST_DESCRIPTION
-		);
+		System.runAs(u) {
+			// Start the test
+			Test.startTest();
 
-		// Call the method to test
-		String projectId = JiraAPIService.updateProject(projectWrapper, TEST_PROJECT_KEY);
+			// Create a project wrapper
+			JiraWrapper.ProjectWrapper projectWrapper = new JiraWrapper.ProjectWrapper(
+				TEST_PROJECT_NAME,
+				TEST_PROJECT_KEY,
+				TEST_DESCRIPTION
+			);
 
-		Test.stopTest();
+			// Call the method to test
+			String projectId = JiraAPIService.updateProject(projectWrapper, TEST_PROJECT_KEY);
 
-		// Verify results
-		Assert.isNull(projectId, 'Project ID should be null due to API failure');
+			Test.stopTest();
+
+			// Verify results
+			Assert.isNull(projectId, 'Project ID should be null due to API failure');
+		}
 	}
 
 	/**
@@ -162,28 +191,32 @@ private class JiraIntegrationTest {
 		// Setup the mock
 		Test.setMock(HttpCalloutMock.class, new JiraMockHttpResponseGenerator(true, false));
 
-		// Start the test
-		Test.startTest();
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Create an issue wrapper
-		JiraWrapper.IssueWrapper issueWrapper = new JiraWrapper.IssueWrapper(
-			TEST_PROJECT_KEY,
-			TEST_ISSUE_SUMMARY,
-			TEST_DESCRIPTION,
-			TEST_ISSUE_TYPE
-		);
+		System.runAs(u) {
+			// Start the test
+			Test.startTest();
 
-		// Call the method to test
-		String issueKey = JiraAPIService.createIssue(issueWrapper);
+			// Create an issue wrapper
+			JiraWrapper.IssueWrapper issueWrapper = new JiraWrapper.IssueWrapper(
+				TEST_PROJECT_KEY,
+				TEST_ISSUE_SUMMARY,
+				TEST_DESCRIPTION,
+				TEST_ISSUE_TYPE
+			);
 
-		Test.stopTest();
+			// Call the method to test
+			String issueKey = JiraAPIService.createIssue(issueWrapper);
 
-		// Verify results
-		Assert.areEqual(
-			JiraMockHttpResponseGenerator.getMockIssueKey(),
-			issueKey,
-			'Issue key should match the mock response'
-		);
+			Test.stopTest();
+
+			// Verify results
+			Assert.areEqual(
+				JiraMockHttpResponseGenerator.getMockIssueKey(),
+				issueKey,
+				'Issue key should match the mock response'
+			);
+		}
 	}
 
 	/**
@@ -194,24 +227,28 @@ private class JiraIntegrationTest {
 		// Setup the mock to return an error response
 		Test.setMock(HttpCalloutMock.class, new JiraMockHttpResponseGenerator(false, false));
 
-		// Start the test
-		Test.startTest();
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Create an issue wrapper
-		JiraWrapper.IssueWrapper issueWrapper = new JiraWrapper.IssueWrapper(
-			TEST_PROJECT_KEY,
-			TEST_ISSUE_SUMMARY,
-			TEST_DESCRIPTION,
-			TEST_ISSUE_TYPE
-		);
+		System.runAs(u) {
+			// Start the test
+			Test.startTest();
 
-		// Call the method to test
-		String issueKey = JiraAPIService.createIssue(issueWrapper);
+			// Create an issue wrapper
+			JiraWrapper.IssueWrapper issueWrapper = new JiraWrapper.IssueWrapper(
+				TEST_PROJECT_KEY,
+				TEST_ISSUE_SUMMARY,
+				TEST_DESCRIPTION,
+				TEST_ISSUE_TYPE
+			);
 
-		Test.stopTest();
+			// Call the method to test
+			String issueKey = JiraAPIService.createIssue(issueWrapper);
 
-		// Verify results
-		Assert.isNull(issueKey, 'Issue key should be null due to API failure');
+			Test.stopTest();
+
+			// Verify results
+			Assert.isNull(issueKey, 'Issue key should be null due to API failure');
+		}
 	}
 
 	/**
@@ -225,24 +262,27 @@ private class JiraIntegrationTest {
 			new JiraMockHttpResponseGenerator(true, false, 'TP1', false)
 		);
 
-		// Start the test
-		Test.startTest();
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Create an issue wrapper
-		JiraWrapper.IssueWrapper issueWrapper = new JiraWrapper.IssueWrapper(
-			TEST_PROJECT_KEY,
-			TEST_ISSUE_SUMMARY,
-			TEST_DESCRIPTION,
-			TEST_ISSUE_TYPE
-		);
+		System.runAs(u) {
+			Test.startTest();
 
-		// Call the method to test
-		String response = JiraAPIService.updateIssue(issueWrapper, TEST_ISSUE_KEY);
+			// Create an issue wrapper
+			JiraWrapper.IssueWrapper issueWrapper = new JiraWrapper.IssueWrapper(
+				TEST_PROJECT_KEY,
+				TEST_ISSUE_SUMMARY,
+				TEST_DESCRIPTION,
+				TEST_ISSUE_TYPE
+			);
 
-		Test.stopTest();
+			// Call the method to test
+			String response = JiraAPIService.updateIssue(issueWrapper, TEST_ISSUE_KEY);
 
-		// Verify results
-		Assert.areEqual('', response, 'The returned body should be empty');
+			Test.stopTest();
+
+			// Verify results
+			Assert.areEqual('', response, 'The returned body should be empty');
+		}
 	}
 
 	/**
@@ -253,24 +293,28 @@ private class JiraIntegrationTest {
 		// Setup the mock to return an error response
 		Test.setMock(HttpCalloutMock.class, new JiraMockHttpResponseGenerator(false, false));
 
-		// Start the test
-		Test.startTest();
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Create an issue wrapper
-		JiraWrapper.IssueWrapper issueWrapper = new JiraWrapper.IssueWrapper(
-			TEST_PROJECT_KEY,
-			TEST_ISSUE_SUMMARY,
-			TEST_DESCRIPTION,
-			TEST_ISSUE_TYPE
-		);
+		System.runAs(u) {
+			// Start the test
+			Test.startTest();
 
-		// Call the method to test
-		String issueKey = JiraAPIService.updateIssue(issueWrapper, TEST_ISSUE_KEY);
+			// Create an issue wrapper
+			JiraWrapper.IssueWrapper issueWrapper = new JiraWrapper.IssueWrapper(
+				TEST_PROJECT_KEY,
+				TEST_ISSUE_SUMMARY,
+				TEST_DESCRIPTION,
+				TEST_ISSUE_TYPE
+			);
 
-		Test.stopTest();
+			// Call the method to test
+			String issueKey = JiraAPIService.updateIssue(issueWrapper, TEST_ISSUE_KEY);
 
-		// Verify results
-		Assert.isNull(issueKey, 'Issue key should be null due to API failure');
+			Test.stopTest();
+
+			// Verify results
+			Assert.isNull(issueKey, 'Issue key should be null due to API failure');
+		}
 	}
 
 	/**
@@ -281,39 +325,43 @@ private class JiraIntegrationTest {
 		// Setup the mock
 		Test.setMock(HttpCalloutMock.class, new JiraMockHttpResponseGenerator(true, true));
 
-		// Get the test project ID
-		List<Jira_Project__c> projects = [
-			SELECT Id, Project_Name__c, Project_Key__c, Description__c
-			FROM Jira_Project__c
-			LIMIT 1
-		];
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Start the test
-		Test.startTest();
+		System.runAs(u) {
+			// Get the test project ID
+			List<Jira_Project__c> projects = [
+				SELECT Id, Project_Name__c, Project_Key__c, Description__c
+				FROM Jira_Project__c
+				LIMIT 1
+			];
 
-		JiraCalloutQueueable.JobParameters params = new JiraCalloutQueueable.JobParameters();
-		params.batchSize = 50;
-		params.currentIndex = 0;
-		params.retryCount = 0;
+			// Start the test
+			Test.startTest();
 
-		// Create and enqueue the queueable job
-		JiraCalloutQueueable queueable = new JiraCalloutQueueable(projects, 'PROJECT', params);
+			JiraCalloutQueueable.JobParameters params = new JiraCalloutQueueable.JobParameters();
+			params.batchSize = 50;
+			params.currentIndex = 0;
+			params.retryCount = 0;
 
-		System.enqueueJob(queueable);
+			// Create and enqueue the queueable job
+			JiraCalloutQueueable queueable = new JiraCalloutQueueable(projects, 'PROJECT', params);
 
-		Test.stopTest();
+			System.enqueueJob(queueable);
 
-		// Verify the project was updated
-		Jira_Project__c updatedProject = [
-			SELECT Id, Project_ID__c
-			FROM Jira_Project__c
-			WHERE Id = :projects
-		];
-		Assert.areEqual(
-			JiraMockHttpResponseGenerator.getMockProjectId(),
-			updatedProject.Project_ID__c,
-			'The project should be updated with the Jira project ID'
-		);
+			Test.stopTest();
+
+			// Verify the project was updated
+			Jira_Project__c updatedProject = [
+				SELECT Id, Project_ID__c
+				FROM Jira_Project__c
+				WHERE Id = :projects
+			];
+			Assert.areEqual(
+				JiraMockHttpResponseGenerator.getMockProjectId(),
+				updatedProject.Project_ID__c,
+				'The project should be updated with the Jira project ID'
+			);
+		}
 	}
 
 	/**
@@ -324,39 +372,43 @@ private class JiraIntegrationTest {
 		// Setup the mock
 		Test.setMock(HttpCalloutMock.class, new JiraMockHttpResponseGenerator(true, false));
 
-		// Get the test issue ID
-		List<Jira_Issue__c> issues = [
-			SELECT Id, Project_Key__c, Summary__c, Description__c, Issue_Type__c
-			FROM Jira_Issue__c
-			LIMIT 1
-		];
+		User u = [SELECT Id FROM User WHERE Alias = 'testusr'];
 
-		// Start the test
-		Test.startTest();
+		System.runAs(u) {
+			// Get the test issue ID
+			List<Jira_Issue__c> issues = [
+				SELECT Id, Project_Key__c, Summary__c, Description__c, Issue_Type__c
+				FROM Jira_Issue__c
+				LIMIT 1
+			];
 
-		JiraCalloutQueueable.JobParameters params = new JiraCalloutQueueable.JobParameters();
-		params.batchSize = 50;
-		params.currentIndex = 0;
-		params.retryCount = 0;
+			// Start the test
+			Test.startTest();
 
-		// Create and enqueue the queueable job
-		JiraCalloutQueueable queueable = new JiraCalloutQueueable(issues, 'ISSUE', params);
+			JiraCalloutQueueable.JobParameters params = new JiraCalloutQueueable.JobParameters();
+			params.batchSize = 50;
+			params.currentIndex = 0;
+			params.retryCount = 0;
 
-		// Execute the queueable
-		System.enqueueJob(queueable);
+			// Create and enqueue the queueable job
+			JiraCalloutQueueable queueable = new JiraCalloutQueueable(issues, 'ISSUE', params);
 
-		Test.stopTest();
+			// Execute the queueable
+			System.enqueueJob(queueable);
 
-		// Verify the issue was updated
-		Jira_Issue__c updatedIssue = [
-			SELECT Id, Issue_Key__c
-			FROM Jira_Issue__c
-			WHERE Id = :issues
-		];
-		Assert.areEqual(
-			JiraMockHttpResponseGenerator.getMockIssueKey(),
-			updatedIssue.Issue_Key__c,
-			'The issue should be updated with the Jira issue key'
-		);
+			Test.stopTest();
+
+			// Verify the issue was updated
+			Jira_Issue__c updatedIssue = [
+				SELECT Id, Issue_Key__c
+				FROM Jira_Issue__c
+				WHERE Id = :issues
+			];
+			Assert.areEqual(
+				JiraMockHttpResponseGenerator.getMockIssueKey(),
+				updatedIssue.Issue_Key__c,
+				'The issue should be updated with the Jira issue key'
+			);
+		}
 	}
 }
